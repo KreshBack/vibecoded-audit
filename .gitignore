@@ -1,0 +1,11 @@
+node_modules/
+*.log
+scan-out*.json
+report*.md
+.DS_Store
+
+.env
+.env.*
+*.pem
+*.key
+*.tgz

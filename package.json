@@ -1,0 +1,43 @@
+{
+  "name": "vibecoded-audit",
+  "version": "0.1.0",
+  "description": "Audit fetched HTML, estimated relevant CSS and source files against 49 design tells. Zero-dependency CLI, CI checks and agent skill with manual review guidance.",
+  "type": "module",
+  "bin": {
+    "vibecoded-audit": "./scan.mjs"
+  },
+  "main": "./scan.mjs",
+  "scripts": {
+    "test": "node test.mjs",
+    "scan": "node scan.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "scan.mjs",
+    "SKILL.md",
+    "patterns.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "vibecoded",
+    "vibe-coding",
+    "ai-slop",
+    "design-audit",
+    "landing-page",
+    "tailwind",
+    "claude-skill",
+    "agent-skills",
+    "lint",
+    "ui"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KreshBack/vibecoded-audit"
+  },
+  "homepage": "https://github.com/KreshBack/vibecoded-audit#readme",
+  "bugs": "https://github.com/KreshBack/vibecoded-audit/issues"
+}

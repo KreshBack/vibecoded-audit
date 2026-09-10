@@ -1,0 +1,56 @@
+<!doctype html>
+<!-- Fictional test fixture. No real business or contact details. -->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Beispielbäckerei, Beispielort</title>
+<meta name="description" content="Handgemachtes Sauerteigbrot, Mo bis Sa ab 6 Uhr, Beispielstrasse (fiktiv).">
+<meta property="og:title" content="Beispielbäckerei">
+<meta property="og:image" content="/img/og.jpg">
+<link rel="icon" href="/favicon.svg">
+<style>
+@font-face { font-family: "Halbfett Grotesk"; src: url(/fonts/halbfett.woff2) format("woff2"); }
+body { margin: 0; background: #efe9dc; color: #1f1a14; font-family: "Halbfett Grotesk", system-ui, sans-serif; }
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+.grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 48px; }
+.rule { border-top: 1px solid #1f1a14; padding-top: 12px; }
+.btn { display: inline-block; border: 1px solid #1f1a14; padding: 14px 20px; color: inherit; text-decoration: none; }
+.btn:hover { background: #1f1a14; color: #efe9dc; }
+.skeleton { background: #e2dccd; height: 1em; }
+h1 { font-size: clamp(40px, 7vw, 96px); letter-spacing: -0.04em; line-height: 1; margin: 0 0 24px; }
+</style>
+</head>
+<body>
+<a href="#main" class="skip">Zum Inhalt</a>
+<header class="wrap rule">
+  <a href="/">Beispielbäckerei</a>
+  <nav><a href="/brot">Brot</a> <a href="/laden">Laden</a> <a href="/kontakt">Kontakt</a></nav>
+</header>
+
+<main id="main" class="wrap">
+  <h1>Sauerteig. Seit 1987. Ab sechs Uhr.</h1>
+  <div class="grid">
+    <img src="/img/ladenfront-2026-03.jpg" alt="Ladenfront an der Beispielstrasse (fiktiv), März 2026" width="1200" height="800">
+    <div>
+      <p class="rule">Vier Brote, ein Ofen, kein Vorteig aus der Tüte. Was heute nicht verkauft wird, geht um 18 Uhr an die Nachbarschaftsküche im Beispielort.</p>
+      <p><a class="btn" href="/brot">Brot der Woche</a></p>
+      <p class="skeleton" aria-busy="true" hidden></p>
+    </div>
+  </div>
+
+  <section class="rule">
+    <h2>Wochenplan</h2>
+    <ol>
+      <li>Montag: Ruchbrot, Zopf</li>
+      <li>Dienstag bis Freitag: Ruchbrot, Roggen, Baguette</li>
+      <li>Samstag: alles, plus Gipfeli ab 7 Uhr</li>
+    </ol>
+  </section>
+</main>
+
+<footer class="wrap rule">
+  <p>Beispielbäckerei GmbH, Beispielstrasse (fiktiv), Beispielort.</p>
+  <p><a href="/impressum">Impressum</a> · <a href="/datenschutz">Datenschutz</a> · <a href="/agb">AGB</a></p>
+</footer>
+</body>
+</html>

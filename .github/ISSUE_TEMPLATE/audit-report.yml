@@ -1,0 +1,46 @@
+name: Audit report
+description: Report an incorrect finding, missed pattern or scanner error.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Share a small, anonymized example. Remove credentials, private URLs, personal information and client data from commands and reports before submitting.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What happened?
+      options:
+        - False positive (a finding should not fire)
+        - Missed pattern (a finding should fire)
+        - Scanner error
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Release or commit, and Node.js version
+      placeholder: v0.1.1, Node.js 24, Linux
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Command and minimal reproduction
+      description: Paste the command and a small fictional HTML/CSS sample. Include the checklist row number when relevant.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result
+      description: Include the scan status and relevant errors or warnings. Review any pasted report for private data.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected result and why
+    validations:
+      required: true

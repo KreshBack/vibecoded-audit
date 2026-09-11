@@ -4,11 +4,19 @@ Does your site look vibecoded? Inspect fetched HTML, page text and relevant CSS 
 
 **Zero runtime dependencies. One Node.js scanner. CLI, CI and an agent skill.**
 
+Try a real example in three commands:
+
 ```bash
 git clone https://github.com/KreshBack/vibecoded-audit.git
 cd vibecoded-audit
-node scan.mjs --html fixtures/vibecoded.html
+npm run demo
 ```
+
+The demo uses bundled fictional pages and makes no network requests. No install step or API key is needed after cloning.
+
+[![Example scanner findings: gradients, placeholder links, missing metadata and manual layout review.](assets/demo.svg)](examples/demo.md)
+
+[Read the example findings and next steps](examples/demo.md).
 
 Or install the skill into your coding agent:
 
@@ -22,6 +30,7 @@ Requires Node.js 18 or newer; CI tests Node.js 22 and 24. This release is distri
 
 - **Inspect the shipped page.** Follow redirects and compare fetched HTML with optional source files, so unused components do not become live findings.
 - **Reduce CSS noise.** Keep rules whose selector classes appear in the fetched HTML. This is an estimate, not browser-computed styling or a coverage measurement.
+- **Make coverage visible.** Missing inputs or failed stylesheets produce errors; intentional omissions are listed as warnings.
 - **Show the evidence.** Read per-tell counts, snippets, metadata and affected URLs instead of relying on an unexplained score.
 - **Use the same checklist with an agent.** The skill adds layout, product-demo and testimonial checks that regular expressions cannot settle.
 
@@ -62,9 +71,19 @@ Paths are relative to your working directory. Use `node /path/to/skill/scan.mjs`
 | `--fail-on none\|hard\|any` | Choose whether findings fail the command; default `none` |
 | `--max-css N` | Limit fetched linked stylesheets; default 12 |
 
-Exit codes: **0** completed without a configured failure, **1** matching findings, **2** invalid input or a failed page scan. The default does not fail on design findings. Requests time out after 15 seconds each.
+Exit codes: **0** completed without a configured failure, **1** matching findings, **2** invalid input or an incomplete scan (including unreadable inputs and failed linked stylesheets). Scan errors take priority over design matches. The default does not fail on design findings. Requests time out after 15 seconds each.
 
 ## Read the results
+
+Read the scan status before the findings:
+
+| Status | What it means |
+|---|---|
+| `complete` | Requested inputs were read without recorded omissions; the scanner limitations below still apply |
+| `limited` | Some content was intentionally skipped: remote CSS in offline mode, stylesheets above `--max-css`, or source files larger than 2 MB |
+| `incomplete` | A requested input or stylesheet failed; exit code 2, even with `--fail-on none` |
+
+JSON reports include `scanStatus`, `errors` and `warnings`. Findings cover the readable inputs only; a completely unreadable page set receives `not scanned` verdicts. `limited` does not by itself fail CI. Inspect the warnings and rerun with the missing coverage where possible.
 
 The report contains rows **1–49**, plus related texture row **23b**. Some rows are mechanical proxies; others explicitly require manual review.
 
@@ -122,7 +141,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: KreshBack/vibecoded-audit
-          ref: v0.1.0
+          ref: v0.1.1
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -150,10 +169,17 @@ jobs:
 
 ```bash
 npm test
+npm run demo:update   # Regenerate the committed example after changing detection
 npm pack --dry-run
 ```
 
-The fixtures are fictional test pages. Tests cover expected matches, a clean baseline, the CSS filter, complete checklist numbering, metadata, manual-review rows and invalid-input exit codes.
+The fixtures are fictional test pages. Tests cover expected matches, a clean baseline, CSS filtering, checklist numbering, metadata, manual verdicts, local and HTTP failures, offline isolation, coverage limits and the generated demo. Network tests use a local server; no external site is required.
+
+## Help improve the checks
+
+Found a false positive or a missed pattern? [Open an audit report](https://github.com/KreshBack/vibecoded-audit/issues/new?template=audit-report.yml) with a small, anonymized HTML/CSS example and the expected result. Useful reproductions help improve the scanner.
+
+If the tool helped you, a star makes it easier to find again and shows support for the project.
 
 ## Related work and credits
 

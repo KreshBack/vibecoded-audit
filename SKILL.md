@@ -3,7 +3,7 @@ name: vibecoded-audit
 description: Use when asked whether a website, landing page or app UI "looks vibecoded", AI-generated, templated, "like every SaaS site", or when auditing a site against the "30 reasons your site looks vibecoded" list, or as a pre-launch / post-redesign design check. Works on a live URL, a source tree (Next, React, Tailwind, Astro, Vue, plain HTML), or both.
 license: MIT
 metadata:
-  version: "0.1.0"
+  version: "0.1.1"
   author: KreshBack
   repository: https://github.com/KreshBack/vibecoded-audit
 ---
@@ -29,7 +29,7 @@ The list is fixed on purpose: an audit that picks its own tells picks the ones t
    node <skill-directory>/scan.mjs --url https://site.tld/ --url https://site.tld/pricing --crawl 8 --text 800 --src ./src --messages ./messages
    ```
    `--src` / `--messages` only when a source tree exists. `--json` for machine output, `--html ./dist` for a built site without a server, `--fail-on hard` for CI. Node 18+, no dependencies. Do not re-grep the source by hand afterwards; the scanner already did.
-2. **Read the header first:** redirect map (what is hidden), applied-vs-shipped CSS share, pages without `<title>` / `og:image` / `lang` / favicon, applied fonts and radii, body background, then the page texts.
+2. **Read the scan status first:** `incomplete` / exit 2 means requested inputs failed; inspect the errors and rerun after correcting them. `limited` means coverage was intentionally reduced (for example, remote CSS in offline mode or the stylesheet cap); report those omissions. Do not turn absent evidence from unreadable inputs into a pass. Then read the header: redirect map (what is hidden), applied-vs-shipped CSS share, pages without `<title>` / `og:image` / `lang` / favicon, applied fonts and radii, body background, then the page texts.
 3. **Fill the report contract.** Rows 1 to 30 always, 31 to 49 where there is evidence. Values: `pass`, `hit`, `partial`, `n/a` (with the reason: "redirects to /paused", "no pricing page").
 4. **Manual pass** (`patterns.md`, section "Manual pass") for 6, 12, 17, 18, 45 and the palette and motion calls. Client-rendered UI (cookie banner, modals) is invisible to curl: read the component or use a browser.
 5. **Fix list:** one row per `hit` and `partial`, file and line, effort, sorted by how visible it is to a visitor.

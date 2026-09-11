@@ -1,6 +1,6 @@
 {
   "name": "vibecoded-audit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Audit fetched HTML, estimated relevant CSS and source files against 49 design tells. Zero-dependency CLI, CI checks and agent skill with manual review guidance.",
   "type": "module",
   "bin": {
@@ -8,8 +8,10 @@
   },
   "main": "./scan.mjs",
   "scripts": {
-    "test": "node test.mjs",
-    "scan": "node scan.mjs"
+    "test": "node test.mjs && node test-inputs.mjs && node scripts/demo.mjs --check-assets",
+    "scan": "node scan.mjs",
+    "demo": "node scripts/demo.mjs",
+    "demo:update": "node scripts/demo.mjs --write-assets"
   },
   "engines": {
     "node": ">=18"
@@ -19,7 +21,11 @@
     "SKILL.md",
     "patterns.md",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "scripts/demo.mjs",
+    "fixtures/",
+    "assets/demo.svg",
+    "examples/demo.md"
   ],
   "keywords": [
     "vibecoded",

@@ -15,6 +15,10 @@ import { pathToFileURL } from 'node:url';
 
 // ---------------------------------------------------------------- args (parsed only when run as a CLI, not when imported)
 const opt = { urls: [], html: [], crawl: 0, text: 0, src: [], messages: [], json: false, out: '', failOn: 'none', maxCss: 12 };
+const errors = [], warnings = [];
+const diagnostic = (list, kind, target, message) => {
+  if (!list.some(d => d.kind === kind && d.target === target && d.message === message)) list.push({ kind, target, message });
+};
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 const args = isMain ? process.argv.slice(2) : [];
 for (let i = 0; i < args.length; i++) {
@@ -29,7 +33,7 @@ for (let i = 0; i < args.length; i++) {
   if (a === '--url') { opt.urls.push(v); i++; }
   else if (a === '--html') { opt.html.push(v); i++; }
   else if (a === '--crawl') { opt.crawl = Number(v) || 0; i++; }
-  else if (a === '--text') { opt.text = Number(v) || 800; i++; }
+  else if (a === '--text') { opt.text = Number(v); i++; }
   else if (a === '--src') { opt.src.push(v); i++; }
   else if (a === '--messages') { opt.messages.push(v); i++; }
   else if (a === '--max-css') { opt.maxCss = Number(v) || 12; i++; }
@@ -39,7 +43,7 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '-h' || a === '--help') { console.log(fs.readFileSync(new URL(import.meta.url), 'utf8').split('\n').slice(1, 10).join('\n')); process.exit(0); }
   else { console.error(`unknown flag ${a}`); process.exit(2); }
 }
-if (isMain && !opt.urls.length && !opt.html.length && !opt.src.length) { console.error('need --url, --html and/or --src (see --help)'); process.exit(2); }
+if (isMain && !opt.urls.length && !opt.html.length && !opt.src.length && !opt.messages.length) { console.error('need --url, --html, --src and/or --messages (see --help)'); process.exit(2); }
 
 // ---------------------------------------------------------------- tells
 // where: html = raw HTML minus <script> (class attrs, hrefs), css = linked + inline CSS whose selectors match shipped classes,
@@ -161,6 +165,10 @@ function visibleText(html) {
 const attr = (tag, name) => { const m = tag.match(new RegExp(`\\b${name}=(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i')); return m ? (m[1] ?? m[2] ?? m[3]) : null; };
 async function get(url) {
   const res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(15000), headers: { 'user-agent': 'Mozilla/5.0 vibecoded-audit (+https://github.com/KreshBack/vibecoded-audit)', accept: 'text/html,text/css,*/*' } });
+  if (!res.ok) {
+    await res.body?.cancel();
+    throw new Error(`HTTP ${res.status}`);
+  }
   return { url: res.url, status: res.status, body: await res.text() };
 }
 function pageFromHtml(requested, finalUrl, status, html) {
@@ -184,9 +192,20 @@ async function scanLive() {
   const limit = Math.max(opt.urls.length, 1) + (opt.crawl || 0);
   while (queue.length && pages.length < limit) {
     const u = queue.shift(); if (!u || seen.has(u)) continue; seen.add(u);
-    let r; try { r = await get(u); } catch (e) { pages.push({ requested: u, error: String(e.message || e) }); continue; }
+    let r; try { r = await get(u); } catch (e) {
+      const message = String(e.message || e);
+      diagnostic(errors, 'page', u, message);
+      pages.push({ requested: u, error: message }); continue;
+    }
     const page = pageFromHtml(u, r.url, r.status, r.body);
-    for (const href of page.links) { try { const abs = new URL(href, r.url).href; if (!cssSheets.has(abs) && cssSheets.size < opt.maxCss) cssSheets.set(abs, null); } catch {} }
+    for (const href of page.links) {
+      try {
+        const abs = new URL(href, r.url).href;
+        if (cssSheets.has(abs)) continue;
+        if (cssSheets.size < opt.maxCss) cssSheets.set(abs, null);
+        else diagnostic(warnings, 'stylesheet-limit', abs, 'Skipped by --max-css; increase the limit to include it.');
+      } catch (e) { diagnostic(errors, 'stylesheet', href, String(e.message || e)); }
+    }
     pages.push(page);
     if (opt.crawl && pages.length === 1) {
       const origin = new URL(r.url).origin;
@@ -194,13 +213,28 @@ async function scanLive() {
       for (const h of hrefs) { try { const abs = new URL(h, r.url); if (abs.origin === origin && !/\.(?:png|jpg|svg|pdf|xml)$/i.test(abs.pathname)) { abs.hash = ''; if (!seen.has(abs.href) && queue.length < opt.crawl * 3) queue.push(abs.href); } } catch {} }
     }
   }
-  for (const [href] of cssSheets) { try { const r = await get(href); cssSheets.set(href, r.body); } catch { cssSheets.set(href, ''); } }
-  // --html files (offline). Linked stylesheets are resolved relative to the file when they exist on disk.
-  const localFiles = opt.html.flatMap(p => fs.existsSync(p) ? (fs.statSync(p).isDirectory() ? walk(p, [], /\.html?$/i) : [p]) : (console.error(`--html not found: ${p}`), []));
+  for (const [href] of cssSheets) {
+    try { const r = await get(href); cssSheets.set(href, r.body); }
+    catch (e) { cssSheets.set(href, ''); diagnostic(errors, 'stylesheet', href, String(e.message || e)); }
+  }
+  // Offline mode never fetches remote stylesheets; report omissions explicitly.
+  const localFiles = collectInputs(opt.html, '--html', /\.html?$/i);
   for (const f of localFiles) {
-    const html = fs.readFileSync(f, 'utf8');
+    let html;
+    try { html = fs.readFileSync(f, 'utf8'); }
+    catch (e) { diagnostic(errors, 'page', f, String(e.message || e)); continue; }
     const page = pageFromHtml(f, f, 200, html);
-    for (const href of page.links) { if (/^https?:/i.test(href)) continue; const p = path.resolve(path.dirname(f), href.split('?')[0]); if (fs.existsSync(p) && !cssSheets.has(p)) cssSheets.set(p, fs.readFileSync(p, 'utf8')); }
+    for (const href of page.links) {
+      if (/^(?:[a-z][\w+.-]*:|\/\/)/i.test(href)) {
+        diagnostic(warnings, 'offline-stylesheet', href, 'Remote or embedded stylesheet omitted in offline mode.');
+        continue;
+      }
+      let target = href;
+      try {
+        target = path.resolve(path.dirname(f), decodeURIComponent(href.split(/[?#]/)[0]));
+        if (!cssSheets.has(target)) cssSheets.set(target, fs.readFileSync(target, 'utf8'));
+      } catch (e) { diagnostic(errors, 'stylesheet', target, String(e.message || e)); }
+    }
     pages.push(page);
   }
   const css = [...cssSheets.values()].join('\n') + '\n' + pages.map(p => p.inline || '').join('\n');
@@ -225,19 +259,37 @@ async function scanLive() {
 const EXT = new Set(['.tsx', '.jsx', '.ts', '.js', '.mjs', '.cjs', '.css', '.scss', '.html', '.vue', '.svelte', '.astro', '.json', '.md', '.mdx']);
 const SKIP_DIR = new Set(['node_modules', '.next', '.nuxt', 'dist', 'build', 'out', 'coverage', '.git', '__tests__', '.turbo', '.vercel', 'storybook-static']);
 function walk(dir, files = [], only = null) {
-  let ents; try { ents = fs.readdirSync(dir, { withFileTypes: true }); } catch { return files; }
+  let ents; try { ents = fs.readdirSync(dir, { withFileTypes: true }); }
+  catch (e) { diagnostic(errors, 'input', dir, String(e.message || e)); return files; }
   for (const e of ents) {
     if (e.isDirectory()) { if (!SKIP_DIR.has(e.name)) walk(path.join(dir, e.name), files, only); }
     else if (only ? only.test(e.name) : (EXT.has(path.extname(e.name)) && !/\.(?:test|spec)\.[jt]sx?$/.test(e.name) && !/lock/.test(e.name))) files.push(path.join(dir, e.name));
   }
   return files;
 }
+function collectInputs(inputs, flag, only = null) {
+  return [...new Set(inputs.flatMap(target => {
+    try {
+      const files = fs.statSync(target).isDirectory() ? walk(target, [], only) : [target];
+      if (!files.length) diagnostic(errors, 'input', target, flag + ' contains no matching files.');
+      return files;
+    } catch (e) { diagnostic(errors, 'input', target, flag + ': ' + String(e.message || e)); return []; }
+  }))];
+}
 function scanSrc() {
-  const files = [...opt.src, ...opt.messages].flatMap(d => fs.existsSync(d) ? (fs.statSync(d).isDirectory() ? walk(d) : [d]) : []);
-  const per = {}; let loadingFiles = 0;
+  const files = [...new Set([...collectInputs(opt.src, '--src'), ...collectInputs(opt.messages, '--messages')])];
+  const per = {}; let loadingFiles = 0, scannedFiles = 0;
   for (const f of files) {
+    let s;
+    try {
+      if (fs.statSync(f).size > 2_000_000) {
+        diagnostic(warnings, 'source-size', f, 'Source file exceeds the 2 MB scan limit and was skipped.');
+        continue;
+      }
+      s = fs.readFileSync(f, 'utf8');
+    } catch (e) { diagnostic(errors, 'source', f, String(e.message || e)); continue; }
+    scannedFiles++;
     if (/(?:^|[\\/])loading\.(?:tsx|jsx|js|ts|vue|svelte)$/.test(f)) loadingFiles++;
-    let s; try { if (fs.statSync(f).size > 2_000_000) continue; s = fs.readFileSync(f, 'utf8'); } catch { continue; }
     for (const t of TELLS) {
       if (!t.src) continue;
       const n = count(t.src, s); if (!n) continue;
@@ -246,7 +298,7 @@ function scanSrc() {
       if (t.families || t.words) rec.samples.push(...matches(t.src, s));
     }
   }
-  return { files: files.length, per, loadingFiles };
+  return { files: scannedFiles, per, loadingFiles };
 }
 
 // ---------------------------------------------------------------- report
@@ -255,9 +307,10 @@ async function main() {
   const live = opt.urls.length || opt.html.length ? await scanLive() : null;
   const src = opt.src.length || opt.messages.length ? scanSrc() : null;
   const rows = [];
+  const hasPages = live?.pages.some(page => !page.error);
   for (const t of TELLS) {
     const row = { id: t.id, sev: t.sev, tell: t.tell };
-    if (live) {
+    if (live && hasPages) {
       const parts = [], ev = [];
       let total = 0;
       if (t.custom) { const r = t.custom(live); total += r.n; parts.push(r.note); }
@@ -272,6 +325,7 @@ async function main() {
       if (ev.length) row.live += ` · e.g. ${ev.map(e => `"${e}"`).join(' ')}`;
       row.liveVerdict = !parts.length ? '' : t.inverse ? (total === 0 ? (t.ssrOnly ? 'not in SSR HTML, verify in a browser' : 'HIT (missing)') : 'ok') : (total === 0 ? 'pass' : 'HIT?');
     }
+    if (live && !hasPages) { row.live = 'No readable pages; inspect the scan errors.'; row.liveVerdict = 'not scanned'; }
     if (t.manual) { row.live = t.manual; row.liveVerdict = 'manual review'; }
     if (src && t.src) {
       const r = src.per[t.id];
@@ -283,11 +337,18 @@ async function main() {
   const hardHits = rows.filter(r => isHardId(r.id) && /^HIT/.test(r.liveVerdict || '')).map(r => r.id);
   const anyHits = rows.filter(r => /^HIT/.test(r.liveVerdict || '')).map(r => r.id);
 
+  const scanStatus = errors.length ? 'incomplete' : warnings.length ? 'limited' : 'complete';
   let text;
   if (opt.json) {
-    text = JSON.stringify({ live: live && { pages: live.pages.map(({ html, text, inline, links, ...p }) => p), sheets: live.sheets, cssBytes: live.css.length, cssAppliedBytes: live.cssApplied.length, fonts: live.fonts, fontFaces: live.fontFaces, radii: live.radii, bodyBg: live.bodyBg, noTitle: live.noTitle }, src: src && { files: src.files, loadingFiles: src.loadingFiles }, rows, hardHits, anyHits }, null, 2);
+    text = JSON.stringify({ scanStatus, errors, warnings, live: live && { pages: live.pages.map(({ html, text, inline, links, ...p }) => p), sheets: live.sheets, cssBytes: live.css.length, cssAppliedBytes: live.cssApplied.length, fonts: live.fonts, fontFaces: live.fontFaces, radii: live.radii, bodyBg: live.bodyBg, noTitle: live.noTitle }, src: src && { files: src.files, loadingFiles: src.loadingFiles }, rows, hardHits, anyHits }, null, 2);
   } else {
-    const out = [];
+    const out = [`## Scan status: ${scanStatus}`, ''];
+    if (errors.length) out.push('**Some inputs failed. Findings cover only the readable inputs; do not treat this as a complete audit.**', '');
+    if (warnings.length) out.push('Coverage is limited by the omissions listed below.', '');
+    for (const [label, items] of [['Error', errors], ['Warning', warnings]]) {
+      for (const d of items) out.push(`- ${label} (${d.kind}): ${d.target} - ${d.message}`);
+    }
+    if (errors.length || warnings.length) out.push('');
     if (live) {
       out.push(`## Live: ${live.pages.length} page(s), ${live.sheets.length} stylesheet(s), ${Math.round(live.sheets.reduce((a, s) => a + s.bytes, 0) / 1024)} KB CSS`);
       for (const p of live.pages) out.push(p.error ? `- ${p.requested} → ERROR ${p.error}` : `- ${p.requested}${p.redirected ? ` → **${p.final}**` : ''} [${p.status}] "${p.title}" · ${p.imgs} img (${p.stockImgs} stock), ${p.videos} video · lang=${p.lang} og:image=${p.ogImage ? 'yes' : 'NO'} favicon=${p.favicon ? 'yes' : 'NO'} description=${p.description ? 'yes' : 'NO'} skip-link=${p.skipLink ? 'yes' : 'no'}`);
@@ -309,8 +370,8 @@ async function main() {
   }
   if (opt.out) fs.writeFileSync(opt.out, text + '\n', 'utf8'); else console.log(text);
   if (opt.out && !opt.json) console.log(`report written to ${opt.out}: ${hardHits.length} hard hit(s), ${anyHits.length} total`);
-  if (live && (!live.pages.length || live.pages.some(p => p.error || p.status >= 400))) process.exit(2);
-  if (opt.failOn === 'hard' && hardHits.length) process.exit(1);
-  if (opt.failOn === 'any' && anyHits.length) process.exit(1);
+  // Let pending network handles close normally, including on Windows.
+  process.exitCode = errors.length ? 2
+    : ((opt.failOn === 'hard' && hardHits.length) || (opt.failOn === 'any' && anyHits.length)) ? 1 : 0;
 }
-if (isMain) main().catch(e => { console.error(e); process.exit(2); });
+if (isMain) main().catch(e => { console.error(e); process.exitCode = 2; });

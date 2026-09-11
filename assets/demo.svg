@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="660" viewBox="0 0 840 660" role="img" aria-labelledby="title desc">
+<title id="title">vibecoded-audit: real findings from a fictional fixture</title>
+<desc id="desc">44 pattern matches to review. Excerpts: gradients, placeholder links, missing metadata and a manual layout review. Coverage limited; remote CSS is omitted in offline mode. These are review prompts, not a design score.</desc>
+<rect width="840" height="660" fill="#101923"/>
+<g font-family="Arial, Helvetica, sans-serif" fill="#ecf1f5">
+<text x="32" y="44" font-size="18" fill="#9cb1c0" letter-spacing="1">VIBECODED-AUDIT / FICTIONAL FIXTURE</text>
+<text x="32" y="94" font-size="36" font-weight="700">See the evidence.</text>
+<text x="32" y="132" font-size="21" fill="#bccbd5">44 pattern matches to review, with evidence for each finding.</text>
+<rect x="32" y="157" width="776" height="52" fill="#1d2a36"/>
+<text x="50" y="190" font-family="monospace" font-size="20" fill="#9ce4c4">$ npm run demo</text>
+<text x="32" y="251" font-size="23" font-weight="700">1. harsh gradients</text>
+<text x="808" y="251" text-anchor="end" font-size="19" fill="#f5cb83">HIT?</text>
+<text x="32" y="284" font-family="monospace" font-size="18" fill="#bccbd5">html 2 · css 1</text>
+<path d="M32 302H808" stroke="#344350"/>
+<text x="32" y="342" font-size="23" font-weight="700">39. dead links (href=&quot;#&quot;)</text>
+<text x="808" y="342" text-anchor="end" font-size="19" fill="#f5cb83">HIT?</text>
+<text x="32" y="375" font-family="monospace" font-size="18" fill="#bccbd5">html 7</text>
+<path d="M32 393H808" stroke="#344350"/>
+<text x="32" y="433" font-size="23" font-weight="700">41. default or missing metadata</text>
+<text x="808" y="433" text-anchor="end" font-size="19" fill="#f5cb83">HIT?</text>
+<text x="32" y="466" font-family="monospace" font-size="18" fill="#bccbd5">default title, og:image, lang, favicon, description</text>
+<path d="M32 484H808" stroke="#344350"/>
+<text x="32" y="526" font-size="22" font-weight="700">45. rule of three rhythm</text>
+<text x="808" y="526" text-anchor="end" font-size="18" fill="#9ce4c4">MANUAL REVIEW</text>
+<text x="32" y="559" font-size="19" fill="#bccbd5">Inspect the rendered layout before assigning a verdict.</text>
+<path d="M32 587H808" stroke="#344350"/>
+<text x="32" y="619" font-size="18" fill="#f5cb83">Coverage: limited. Remote CSS omitted in offline mode.</text>
+<text x="32" y="645" font-size="16" fill="#9cb1c0">Selected rows from the actual scanner output. Reproduce with npm run demo.</text>
+</g>
+</svg>

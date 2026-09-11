@@ -34,7 +34,7 @@ Legend for Detect: `html` = class attributes and hrefs of the shipped page, `css
 | 24 | sparkle icons | ✨ or `Sparkles` next to anything "AI" | html/text/src | | remove |
 | 25 | animated arrows | `→` sliding right on hover on every link | html `group-hover:translate-x`, css `:hover{translateX` | | static arrow or none |
 | 26 | no TOS | footer without terms | html terms/AGB/conditions href | absence is a review prompt; applicability depends on the site | review applicable requirements |
-| 27 | no privacy policy | footer without privacy link | html privacy/Datenschutz/Impressum href | absence is a review prompt; an imprint is not a privacy policy | review applicable requirements |
+| 27 | no privacy policy | footer without privacy link | html privacy/Datenschutz/confidentialite/informativa href | absence is a review prompt; an imprint is not a privacy policy | review applicable requirements |
 | 28 | hover animations | `hover:scale-105`, `hover:-translate-y-1 hover:shadow-lg` on cards | html hover classes, css `:hover{transform` | one restrained lift on buttons is fine; on every card it is the tell | color or underline change only |
 | 29 | neon colors | `#00ff`, lime-400, cyan-400 accents | html/css | | desaturate |
 | 30 | basic pastel colors | `bg-blue-100`, `bg-green-50` tag and card fills | html `bg-*-50/100/200` | tinted neutrals derived from the brand hue are fine | two-tone: ink + paper |
